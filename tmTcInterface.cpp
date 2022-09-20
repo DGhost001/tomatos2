@@ -1,7 +1,8 @@
-#include <cstdint>
+#include <stdint.h>
 #include "tmTcInterface.h"
 #include "hdlc.h"
 
+#include <Arduino.h>
 #include <Wire.h>
 
 #pragma pack(1)
@@ -14,12 +15,12 @@ struct TelemetryCommand {
 
 static uint8_t commandCounter;
 
-bool sendCommand(ClientAddress const address, Commands const cmd, uint16_t &parameter)
+bool sendCommand(ClientAddress const address, Commands const cmdId, uint16_t &parameter)
 {
     bool result = false;
     TelemetryCommand cmd;
 
-    cmd.cmdId = static_cast<int>(cmd);
+    cmd.cmdId = static_cast<int>(cmdId);
     cmd.cmdTag = commandCounter;
     cmd.parameter = parameter;
 
