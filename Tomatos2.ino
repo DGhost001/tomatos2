@@ -2,6 +2,7 @@
 #include "tmTcInterface.h"
 #include <Wire.h>
 #include "hdlc.h"
+#include "LowPower.h"
 
 enum ClientTypes{
   cTemperature = 2,
@@ -88,6 +89,39 @@ static void printMeasurement(unsigned const index)
   Serial.print("}");
 }
 
+int readAnalgoValue() 
+{
+  ADCSRA |= _BV(ADSC); // start the conversion
+  while (bit_is_set(ADCSRA, ADSC)); // ADSC is cleared when the conversion finishes
+
+  int const result = (ADCL | (ADCH << 8)); // combine bytes & correct for temp offset (approximate)} 
+
+  return result;
+}
+
+float getTemperature()
+{
+  ADMUX = 0xC8; // turn on internal reference, right-shift ADC buffer, ADC channel = internal temp sensor
+  delay(10);
+  int temp = 0;
+  for(int i=0; i<16; ++i) temp+=readAnalgoValue();
+
+  return (temp/16.0)-356 + 21;
+}
+
+uint16_t getCurrentSensor()
+{
+  ADMUX = 0x40; // turn on internal reference, right-shift ADC buffer, ADC channel = internal temp sensor
+  delay(10);
+
+  int result = 0;
+  for(int i = 0; i<16; ++i) {
+    result += readAnalgoValue();   
+  }
+
+  return result;
+}
+
 
 void setup() {
   // put your setup code here, to run once:
@@ -98,6 +132,9 @@ void setup() {
   scanBus();
   Serial.print(" found ");
   Serial.println(foundClients);
+
+  ADMUX = 0xC8; // turn on internal reference, right-shift ADC buffer, ADC channel = internal temp sensor
+  delay(10);  // wait a sec for the analog reference to stabilize
 }
 
 void loop() {
@@ -105,7 +142,11 @@ void loop() {
   ++sequence;
   updateMeasurements();
   Serial.print("\30{");
-  Serial.print("\"sequence\":"); Serial.print(sequence);  
+  Serial.print("\"sequence\":"); Serial.print(sequence);
+  Serial.print(",\"temperature\":");
+  Serial.print(getTemperature());
+  Serial.print(",\"current\":");
+  Serial.print(getCurrentSensor());   
   Serial.print(",\"Sensors\":["); 
   for(unsigned index = 0; index < foundClients; ++index)
   {
@@ -117,5 +158,6 @@ void loop() {
   Serial.print("]");
   Serial.println("}");
 
-  delay(1000);
+  Serial.flush();
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_ON);
 }
