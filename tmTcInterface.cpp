@@ -31,7 +31,7 @@ bool sendCommand(ClientAddress const address, Commands const cmdId, uint16_t &pa
     delay(10); //Allow the client to process the command
 
     //Request and decode the response from the client
-    if(Wire.requestFrom(address,16) > 0 && hdlcReceiveBuffer(&cmd, sizeof(cmd)))
+    if(Wire.requestFrom(address,static_cast<uint8_t>(16)) > 0 && hdlcReceiveBuffer(&cmd, sizeof(cmd)))
     {
         //If the decoded tag is equal to our requestm this is the response to our command
         if(cmd.cmdTag == commandCounter) {
